@@ -365,51 +365,6 @@ app.get('/getBlurb/:userId', function (req, res, next) {
     })
 })
 
-app.post('/forumPost/new/:forumId', authenticate, function (req, res, next) {
-  var requiredFields = {
-    'forumId': 'int',
-    'body': 'string',
-    'subject': 'string'
-  }
-  var optionalFields = {
-    'locked': 'boolean'
-  }
-  var validate = [req.params, req.body, req.query]
-  var opt = verifyParameters(res, validate, requiredFields, optionalFields)
-  if (!opt) {
-    return
-  }
-  rbx.forumPost(opt)
-    .then(function (id) {
-      res.json({error: null, data: {newPostId: id}, message: 'Created new forum post with ID ' + id + ' in forum ' + opt.forumId})
-    })
-    .catch(function (err) {
-      sendErr(res, {error: 'Error: ' + err.message})
-    })
-})
-
-app.post('/forumPost/reply/:postId', authenticate, function (req, res, next) {
-  var requiredFields = {
-    'postId': 'int',
-    'body': 'string'
-  }
-  var optionalFields = {
-    'locked': 'boolean'
-  }
-  var validate = [req.params, req.body, req.query]
-  var opt = verifyParameters(res, validate, requiredFields, optionalFields)
-  if (!opt) {
-    return
-  }
-  rbx.forumPost(opt)
-    .then(function (id) {
-      res.json({error: null, data: {newPostId: id}, message: 'Replied to forum post ' + opt.postId + ' with new post ID ' + id})
-    })
-    .catch(function (err) {
-      sendErr(res, {error: 'Error: ' + err.message})
-    })
-})
-
 app.post('/promote/:group/:target', authenticate, changeRank(1))
 app.post('/demote/:group/:target', authenticate, changeRank(-1))
 

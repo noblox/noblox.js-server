@@ -96,14 +96,6 @@ function module.message (userId, subject, message)
   return http.post('/message/'..userId, {subject = subject, body = message})
 end
 
-function module.forumPostNew (forumId, subject, body, locked)
-  return http.post('/forumPost/new/'..forumId..'?locked='..(locked and 'true' or 'false'), {subject = subject, body = body})
-end
-
-function module.forumPostReply (postId, body, locked)
-  return http.post('/forumPost/reply/'..postId..'?locked='..(locked and 'true' or 'false'), {body = body})
-end
-
 function module.getBlurb (userId)
   return http.get('/getBlurb/'..userId)
 end
