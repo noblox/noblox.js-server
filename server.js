@@ -1,146 +1,147 @@
-var express = require('express');
+var express = require('express')
 var rbx = require('noblox.js')
-var fs = require('fs');
-var crypto = require('crypto');
-var validator = require('validator');
-var bodyParser = require('body-parser');
-var Promise = require('bluebird');
+var fs = require('fs')
+var crypto = require('crypto')
+var validator = require('validator')
+var bodyParser = require('body-parser')
+var Promise = require('bluebird')
 
-var app = express();
-var port = process.env.PORT || 8080;
-var settings = require('./settings.json');
-var key = settings.key;
-var maximumRank = settings.maximumRank || 255;
+var app = express()
+var port = process.env.PORT || 8080
+var settings = require('./settings.json')
+var key = settings.key
+var maximumRank = settings.maximumRank || 255
+const COOKIE = settings.cookie
 
-app.set('env', 'production');
+app.set('env', 'production')
 
-var _setRank = rbx.setRank;
+var _setRank = rbx.setRank
 
 rbx.setRank = function (opt) {
-  var rank = opt.rank;
+  var rank = opt.rank
   if (rank > maximumRank) {
-    return Promise.reject(new Error('New rank ' + rank + ' is above rank limit ' + maximumRank));
+    return Promise.reject(new Error('New rank ' + rank + ' is above rank limit ' + maximumRank))
   } else {
-    return _setRank(opt);
+    return _setRank(opt)
   }
-};
+}
 
-var inProgress = {};
-var completed = {};
+var inProgress = {}
+var completed = {}
 
-var dir = './players';
+var dir = './players'
 
 if (!fs.existsSync(dir)) {
-  fs.mkdirSync(dir);
+  fs.mkdirSync(dir)
 }
 
 fs.readdirSync('./players').forEach(function (file) { // This is considered a part of server startup and following functions could error anyways if it isn't complete, so using synchronous instead of asynchronous is very much intended.
-  completed[file] = true;
-});
+  completed[file] = true
+})
 
 function sendErr (res, json, status) {
-  res.json(json);
+  res.json(json)
 }
 
 function validatorType (type) {
   switch (type) {
     case 'int':
-      return validator.isInt;
+      return validator.isInt
     case 'safe_string':
-      return validator.isAlphanumeric;
+      return validator.isAlphanumeric
     case 'boolean':
-      return validator.isBoolean;
+      return validator.isBoolean
     case 'string':
       return function (value) {
-        return typeof value === 'string';
-      };
+        return typeof value === 'string'
+      }
     default:
       return function () {
-        return true;
-      };
+        return true
+      }
   }
 }
 
 function processType (type, value) {
   switch (type) {
     case 'int':
-      return parseInt(value, 10);
+      return parseInt(value, 10)
     case 'boolean':
-      return (value === 'true');
+      return (value === 'true')
     default:
-      return value;
+      return value
   }
 }
 
 function verifyParameters (res, validate, requiredFields, optionalFields) {
-  var result = {};
+  var result = {}
   if (requiredFields) {
     for (var index in requiredFields) {
-      var type = requiredFields[index];
-      var use = validatorType(type);
+      var type = requiredFields[index]
+      var use = validatorType(type)
 
-      var found = false;
+      var found = false
       for (var i = 0; i < validate.length; i++) {
-        var value = validate[i][index];
+        var value = validate[i][index]
         if (value) {
           if (use(value)) {
-            result[index] = processType(type, value);
-            found = true;
+            result[index] = processType(type, value)
+            found = true
           } else {
-            sendErr(res, {error: 'Parameter "' + index + '" is not the correct data type.', id: null});
-            return false;
+            sendErr(res, {error: 'Parameter "' + index + '" is not the correct data type.', id: null})
+            return false
           }
-          break;
+          break
         }
       }
       if (!found) {
-        sendErr(res, {error: 'Parameter "' + index + '" is required.', id: null});
-        return false;
+        sendErr(res, {error: 'Parameter "' + index + '" is required.', id: null})
+        return false
       }
     }
   }
   if (optionalFields) {
     for (index in optionalFields) {
-      type = optionalFields[index];
-      use = validatorType(type);
+      type = optionalFields[index]
+      use = validatorType(type)
       for (i = 0; i < validate.length; i++) {
-        value = validate[i][index];
+        value = validate[i][index]
         if (value) {
           if (use(value)) {
-            result[index] = processType(type, value);
+            result[index] = processType(type, value)
           } else {
-            sendErr(res, {error: 'Parameter "' + index + '" is not the correct data type.', id: null});
-            return false;
+            sendErr(res, {error: 'Parameter "' + index + '" is not the correct data type.', id: null})
+            return false
           }
-          break;
+          break
         }
       }
     }
   }
-  return result;
+  return result
 }
 
 function authenticate (req, res, next) {
   if (req.body.key === key) {
-    next();
+    next()
   } else {
-    sendErr(res, {error: 'Incorrect authentication key', id: null}, 401);
+    sendErr(res, {error: 'Incorrect authentication key', id: null}, 401)
   }
 }
 
 function checkRank (opt) {
-  var group = opt.group;
-  var target = opt.target;
+  var group = opt.group
+  var target = opt.target
   return rbx.getRankInGroup(group, target)
-  .then(function (rank) {
-    if (rank === 0) {
-      throw new Error('Target user ' + target + ' is not in group ' + group);
-    }
-    if (rank > maximumRank) {
-      throw new Error('Original rank ' + rank + ' is above rank limit ' + maximumRank);
-    }
-    return rank;
-  });
+    .then(function (rank) {
+      if (rank === 0) {
+        throw new Error('Target user ' + target + ' is not in group ' + group)
+      }
+      if (rank > maximumRank) {
+        throw new Error('Original rank ' + rank + ' is above rank limit ' + maximumRank)
+      }
+      return rank
+    })
 }
 
 function changeRank (amount) {
@@ -148,360 +149,359 @@ function changeRank (amount) {
     var requiredFields = {
       'group': 'int',
       'target': 'int'
-    };
-    var validate = [req.params];
+    }
+    var validate = [req.params]
 
-    var opt = verifyParameters(res, validate, requiredFields);
+    var opt = verifyParameters(res, validate, requiredFields)
     if (!opt) {
-      return;
+      return
     }
 
-    var group = opt.group;
+    var group = opt.group
     checkRank(opt)
-    .then(function (rank) {
-      return rbx.getRoles(group)
-      .then(function (roles) {
-        var found;
-        var foundRank;
+      .then(function (rank) {
+        return rbx.getRoles(group)
+          .then(function (roles) {
+            var found
+            var foundRank
 
-        // Roles is actually sorted on ROBLOX's side and returned the same way
-        for (var i = 0; i < roles.length; i++) {
-          var role = roles[i];
-          var thisRank = role.Rank;
-          if (thisRank === rank) {
-            var change = i + amount;
-            found = roles[change];
-            if (!found) {
-              sendErr(res, {error: 'Rank change is out of range'});
-              return;
+            // Roles is actually sorted on ROBLOX's side and returned the same way
+            for (var i = 0; i < roles.length; i++) {
+              var role = roles[i]
+              var thisRank = role.Rank
+              if (thisRank === rank) {
+                var change = i + amount
+                found = roles[change]
+                if (!found) {
+                  sendErr(res, {error: 'Rank change is out of range'})
+                  return
+                }
+                foundRank = found.Rank
+                var up = roles[change + 1]
+                var down = roles[change - 1]
+                if ((up && up.Rank === foundRank) || (down && down.Rank === foundRank)) {
+                  sendErr(res, {error: 'There are two or more roles with the same rank number, please change or commit manually.'})
+                  return
+                }
+                var name = found.Name
+                opt.rank = foundRank
+                return rbx.setRank(opt)
+                  .then(function (roleset) {
+                    res.json({error: null, data: {newRoleSetId: roleset, newRankName: name, newRank: foundRank}, message: 'Successfully changed rank of user ' + opt.target + ' to rank "' + name + '" in group ' + opt.group})
+                  })
+              }
             }
-            foundRank = found.Rank;
-            var up = roles[change + 1];
-            var down = roles[change - 1];
-            if ((up && up.Rank === foundRank) || (down && down.Rank === foundRank)) {
-              sendErr(res, {error: 'There are two or more roles with the same rank number, please change or commit manually.'});
-              return;
-            }
-            var name = found.Name;
-            opt.rank = foundRank;
-            return rbx.setRank(opt)
-            .then(function (roleset) {
-              res.json({error: null, data: {newRoleSetId: roleset, newRankName: name, newRank: foundRank}, message: 'Successfully changed rank of user ' + opt.target + ' to rank "' + name + '" in group ' + opt.group});
-            });
-          }
-        }
-      });
-    })
-    .catch(function (err) {
-      sendErr(res, {error: 'Change rank failed: ' + err.message});
-    });
-  };
+          })
+      })
+      .catch(function (err) {
+        sendErr(res, {error: 'Change rank failed: ' + err.message})
+      })
+  }
 }
 
 function getPlayersWithOpt (req, res, next) {
-  var uid = crypto.randomBytes(5).toString('hex');
+  var uid = crypto.randomBytes(5).toString('hex')
   var requiredFields = {
     'group': 'int'
-  };
+  }
   var optionalFields = {
     'rank': 'int',
     'limit': 'int',
     'online': 'boolean'
-  };
-  var validate = [req.params, req.query];
+  }
+  var validate = [req.params, req.query]
 
-  var opt = verifyParameters(res, validate, requiredFields, optionalFields);
+  var opt = verifyParameters(res, validate, requiredFields, optionalFields)
   if (!opt) {
-    return;
+    return
   }
 
-  inProgress[uid] = 0;
-  var players = rbx.getPlayers(opt);
+  inProgress[uid] = 0
+  var players = rbx.getPlayers(opt)
 
-  inProgress[uid] = players.getStatus;
+  inProgress[uid] = players.getStatus
   players.promise.then(function (info) {
     if (inProgress[uid]) { // Check if job was deleted
-      completed[uid] = true;
-      var file = fs.createWriteStream('./players/' + uid);
-      file.write(JSON.stringify(info, null, ' '));
+      completed[uid] = true
+      var file = fs.createWriteStream('./players/' + uid)
+      file.write(JSON.stringify(info, null, ' '))
     }
-    info = null; // Bye, bye
-  });
-  res.json({error: null, data: {uid: uid}});
+    info = null // Bye, bye
+  })
+  res.json({error: null, data: {uid: uid}})
 }
 
-app.use(bodyParser.json());
+app.use(bodyParser.json())
 
 app.post('/setRank/:group/:target/:rank', authenticate, function (req, res, next) {
   var requiredFields = {
     'group': 'int',
     'rank': 'int',
     'target': 'int'
-  };
-  var validate = [req.params];
-  var opt = verifyParameters(res, validate, requiredFields);
+  }
+  var validate = [req.params]
+  var opt = verifyParameters(res, validate, requiredFields)
   if (!opt) {
-    return;
+    return
   }
   // This gets the rank manually instead of letting setRank do it because it needs the role's name.
-  var rank = opt.rank;
+  var rank = opt.rank
   checkRank(opt)
-  .then(function () {
-    return rbx.getRoles(opt.group)
-    .then(function (roles) {
-      var role = rbx.getRole(roles, rank);
-      if (!role) {
-        sendErr(res, {error: 'Role does not exist'});
-        return;
-      }
-      var name = role.Name;
-      return rbx.setRank(opt)
-      .then(function (roleset) {
-        res.json({error: null, data: {newRoleSetId: roleset, newRankName: name, newRank: rank}, message: 'Successfully changed rank of user ' + opt.target + ' to rank "' + name + '" in group ' + opt.group});
-      });
-    });
-  })
-  .catch(function (err) {
-    sendErr(res, {error: 'Set rank failed: ' + err.message});
-  });
-});
+    .then(function () {
+      return rbx.getRoles(opt.group)
+        .then(function (roles) {
+          var role = rbx.getRole(roles, rank)
+          if (!role) {
+            sendErr(res, {error: 'Role does not exist'})
+            return
+          }
+          var name = role.Name
+          return rbx.setRank(opt)
+            .then(function (roleset) {
+              res.json({error: null, data: {newRoleSetId: roleset, newRankName: name, newRank: rank}, message: 'Successfully changed rank of user ' + opt.target + ' to rank "' + name + '" in group ' + opt.group})
+            })
+        })
+    })
+    .catch(function (err) {
+      sendErr(res, {error: 'Set rank failed: ' + err.message})
+    })
+})
 
 app.post('/handleJoinRequest/:group/:username/:accept', authenticate, function (req, res, next) {
   var requiredFields = {
     'group': 'int',
     'username': 'string',
     'accept': 'boolean'
-  };
-  var validate = [req.params];
-  var opt = verifyParameters(res, validate, requiredFields);
+  }
+  var validate = [req.params]
+  var opt = verifyParameters(res, validate, requiredFields)
   if (!opt) {
-    return;
+    return
   }
   rbx.handleJoinRequest(opt)
-  .then(function () {
-    res.json({error: null, message: 'Successfully ' + (opt.accept ? 'accepted' : 'declined') + ' ' + opt.username});
-  })
-  .catch(function (err) {
-    sendErr(res, {error: 'Handle join request failed: ' + err.message});
-  });
-});
+    .then(function () {
+      res.json({error: null, message: 'Successfully ' + (opt.accept ? 'accepted' : 'declined') + ' ' + opt.username})
+    })
+    .catch(function (err) {
+      sendErr(res, {error: 'Handle join request failed: ' + err.message})
+    })
+})
 
 app.post('/message/:recipient/', authenticate, function (req, res, next) {
   var requiredFields = {
     'recipient': 'int',
     'subject': 'string',
     'body': 'string'
-  };
-  var validate = [req.params, req.body];
-  var opt = verifyParameters(res, validate, requiredFields);
+  }
+  var validate = [req.params, req.body]
+  var opt = verifyParameters(res, validate, requiredFields)
   if (!opt) {
-    return;
+    return
   }
   rbx.message(opt)
-  .then(function () {
-    res.json({error: null, message: 'Messaged user ' + opt.recipient + ' with subject "' + opt.subject + '"'});
-  })
-  .catch(function (err) {
-    sendErr(res, {error: 'Message failed: ' + err.message});
-  });
-});
+    .then(function () {
+      res.json({error: null, message: 'Messaged user ' + opt.recipient + ' with subject "' + opt.subject + '"'})
+    })
+    .catch(function (err) {
+      sendErr(res, {error: 'Message failed: ' + err.message})
+    })
+})
 
 app.post('/shout/:group', authenticate, function (req, res, next) {
   var requiredFields = {
     'group': 'int'
-  };
+  }
   var optionalFields = {
     'message': 'string'
-  };
-  var validate = [req.params, req.body];
-  var opt = verifyParameters(res, validate, requiredFields, optionalFields);
+  }
+  var validate = [req.params, req.body]
+  var opt = verifyParameters(res, validate, requiredFields, optionalFields)
   if (!opt) {
-    return;
+    return
   }
   rbx.shout(opt)
-  .then(function () {
-    res.json({error: null, message: 'Shouted in group ' + opt.group});
-  })
-  .catch(function (err) {
-    sendErr(res, {error: 'Error: ' + err.message});
-  });
-});
+    .then(function () {
+      res.json({error: null, message: 'Shouted in group ' + opt.group})
+    })
+    .catch(function (err) {
+      sendErr(res, {error: 'Error: ' + err.message})
+    })
+})
 
 app.post('/post/:group', authenticate, function (req, res, next) {
   var requiredFields = {
     'group': 'int',
     'message': 'string'
-  };
-  var validate = [req.params, req.body];
-  var opt = verifyParameters(res, validate, requiredFields);
+  }
+  var validate = [req.params, req.body]
+  var opt = verifyParameters(res, validate, requiredFields)
   if (!opt) {
-    return;
+    return
   }
   rbx.post(opt)
-  .then(function () {
-    res.json({error: null, message: 'Posted in group ' + opt.group});
-  })
-  .catch(function (err) {
-    sendErr(res, {error: 'Error: ' + err.message});
-  });
-});
+    .then(function () {
+      res.json({error: null, message: 'Posted in group ' + opt.group})
+    })
+    .catch(function (err) {
+      sendErr(res, {error: 'Error: ' + err.message})
+    })
+})
 
 app.get('/getBlurb/:userId', function (req, res, next) {
   var requiredFields = {
     'userId': 'int'
-  };
-  var validate = [req.params];
-  var opt = verifyParameters(res, validate, requiredFields);
+  }
+  var validate = [req.params]
+  var opt = verifyParameters(res, validate, requiredFields)
   if (!opt) {
-    return;
+    return
   }
   rbx.getBlurb(opt)
-  .then(function (blurb) {
-    res.json({error: null, data: {blurb: blurb}});
-  })
-  .catch(function (err) {
-    sendErr(res, {error: 'Error: ' + err.message});
-  });
-});
+    .then(function (blurb) {
+      res.json({error: null, data: {blurb: blurb}})
+    })
+    .catch(function (err) {
+      sendErr(res, {error: 'Error: ' + err.message})
+    })
+})
 
 app.post('/forumPost/new/:forumId', authenticate, function (req, res, next) {
   var requiredFields = {
     'forumId': 'int',
     'body': 'string',
     'subject': 'string'
-  };
+  }
   var optionalFields = {
     'locked': 'boolean'
-  };
-  var validate = [req.params, req.body, req.query];
-  var opt = verifyParameters(res, validate, requiredFields, optionalFields);
+  }
+  var validate = [req.params, req.body, req.query]
+  var opt = verifyParameters(res, validate, requiredFields, optionalFields)
   if (!opt) {
-    return;
+    return
   }
   rbx.forumPost(opt)
-  .then(function (id) {
-    res.json({error: null, data: {newPostId: id}, message: 'Created new forum post with ID ' + id + ' in forum ' + opt.forumId});
-  })
-  .catch(function (err) {
-    sendErr(res, {error: 'Error: ' + err.message});
-  });
-});
+    .then(function (id) {
+      res.json({error: null, data: {newPostId: id}, message: 'Created new forum post with ID ' + id + ' in forum ' + opt.forumId})
+    })
+    .catch(function (err) {
+      sendErr(res, {error: 'Error: ' + err.message})
+    })
+})
 
 app.post('/forumPost/reply/:postId', authenticate, function (req, res, next) {
   var requiredFields = {
     'postId': 'int',
     'body': 'string'
-  };
+  }
   var optionalFields = {
     'locked': 'boolean'
-  };
-  var validate = [req.params, req.body, req.query];
-  var opt = verifyParameters(res, validate, requiredFields, optionalFields);
+  }
+  var validate = [req.params, req.body, req.query]
+  var opt = verifyParameters(res, validate, requiredFields, optionalFields)
   if (!opt) {
-    return;
+    return
   }
   rbx.forumPost(opt)
-  .then(function (id) {
-    res.json({error: null, data: {newPostId: id}, message: 'Replied to forum post ' + opt.postId + ' with new post ID ' + id});
-  })
-  .catch(function (err) {
-    sendErr(res, {error: 'Error: ' + err.message});
-  });
-});
+    .then(function (id) {
+      res.json({error: null, data: {newPostId: id}, message: 'Replied to forum post ' + opt.postId + ' with new post ID ' + id})
+    })
+    .catch(function (err) {
+      sendErr(res, {error: 'Error: ' + err.message})
+    })
+})
 
-app.post('/promote/:group/:target', authenticate, changeRank(1));
-app.post('/demote/:group/:target', authenticate, changeRank(-1));
+app.post('/promote/:group/:target', authenticate, changeRank(1))
+app.post('/demote/:group/:target', authenticate, changeRank(-1))
 
-app.post('/getPlayers/make/:group/:rank', getPlayersWithOpt);
-app.post('/getPlayers/make/:group', getPlayersWithOpt);
+app.post('/getPlayers/make/:group/:rank', getPlayersWithOpt)
+app.post('/getPlayers/make/:group', getPlayersWithOpt)
 
 app.post('/getPlayers/delete/:uid', authenticate, function (req, res, next) {
-  var uid = req.params.uid;
+  var uid = req.params.uid
   function fail () {
-    sendErr(res, {error: 'Invalid ID or the job is not complete'});
+    sendErr(res, {error: 'Invalid ID or the job is not complete'})
   }
   if (uid.length === 10 && validator.isHexadecimal(uid)) {
-    var path = './players/' + uid;
+    var path = './players/' + uid
     if (completed[uid]) {
-      completed[uid] = false;
-      inProgress[uid] = null;
+      completed[uid] = false
+      inProgress[uid] = null
       fs.unlink(path, function (err) { // Since the uid was verified to be hex this shouldn't be a security issue
         if (err) {
-          next(err);
+          next(err)
         } else {
-          res.json({error: null, message: 'File deleted'});
+          res.json({error: null, message: 'File deleted'})
         }
-      });
+      })
     }
   } else if (inProgress[uid]) {
-    inProgress[uid] = null;
-    res.json({error: null, message: 'Removed from list, the job itself has not been stopped'});
+    inProgress[uid] = null
+    res.json({error: null, message: 'Removed from list, the job itself has not been stopped'})
   } else {
-    fail();
+    fail()
   }
-});
+})
 
 app.get('/getPlayers/retrieve/:uid', function (req, res, next) {
-  var uid = req.params.uid;
+  var uid = req.params.uid
   function fail () {
-    sendErr(res, {error: 'Invalid ID'});
+    sendErr(res, {error: 'Invalid ID'})
   }
   if (uid.length === 10 && validator.isHexadecimal(uid)) {
-    var path = './players/' + uid;
-    var complete = completed[uid];
-    var progress = inProgress[uid];
+    var path = './players/' + uid
+    var complete = completed[uid]
+    var progress = inProgress[uid]
     if (complete) {
       fs.stat(path, function (err) {
         if (err) {
-          next(err);
+          next(err)
         } else {
-          res.append('Content-Type', 'application/json');
-          res.write('{"error":null,"data":{"progress":100,"complete":true,');
-          var stream = fs.createReadStream(path);
-          var first = true;
+          res.append('Content-Type', 'application/json')
+          res.write('{"error":null,"data":{"progress":100,"complete":true,')
+          var stream = fs.createReadStream(path)
+          var first = true
           stream.on('data', function (data) {
             if (first) {
-              first = false;
-              res.write(data.toString().substring(1));
+              first = false
+              res.write(data.toString().substring(1))
             } else {
-              res.write(data);
+              res.write(data)
             }
-          });
+          })
           stream.on('end', function () {
-            res.end('}');
-          });
+            res.end('}')
+          })
         }
-      });
+      })
     } else if (progress) {
-      sendErr(res, {error: 'Job is still processing', data: {complete: false, progress: progress()}}, 200);
+      sendErr(res, {error: 'Job is still processing', data: {complete: false, progress: progress()}}, 200)
     } else {
-      fail();
+      fail()
     }
   } else {
-    fail();
+    fail()
   }
-});
+})
 
 app.use(function (err, req, res, next) {
-  console.error(err.stack);
-  sendErr(res, {error: 'Internal server error'});
-});
+  console.error(err.stack)
+  sendErr(res, {error: 'Internal server error'})
+})
 
 function login () {
-  return rbx.login(settings.username, settings.password);
+  return rbx.cookieLogin(COOKIE)
 }
-setInterval(login, 86400000);
 login().then(function () {
   app.listen(port, function () {
-    console.log('Listening on port ' + port);
-  });
+    console.log('Listening on port ' + port)
+  })
 })
-.catch(function (err) {
-  var errorApp = express();
-  errorApp.get('/*', function (req, res, next) {
-    res.json({error: 'Server configuration error: ' + err.message});
-  });
-  errorApp.listen(port, function () {
-    console.log('Configuration error page listening');
-  });
-});
+  .catch(function (err) {
+    var errorApp = express()
+    errorApp.get('/*', function (req, res, next) {
+      res.json({error: 'Server configuration error: ' + err.message})
+    })
+    errorApp.listen(port, function () {
+      console.log('Configuration error page listening')
+    })
+  })
