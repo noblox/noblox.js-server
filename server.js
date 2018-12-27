@@ -1,5 +1,5 @@
 var express = require('express');
-var rbx = require('roblox-js');
+var rbx = require('noblox.js')
 var fs = require('fs');
 var crypto = require('crypto');
 var validator = require('validator');
