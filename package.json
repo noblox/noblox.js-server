@@ -17,7 +17,7 @@
     "bluebird": "^3.4.6",
     "body-parser": "^1.15.2",
     "express": "^4.14.0",
-    "roblox-js": "^2.0.0",
+    "noblox.js": "^4.1.2",
     "validator": "^6.1.0"
   },
   "bugs": {
