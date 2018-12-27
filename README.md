@@ -1,12 +1,12 @@
-# roblox-js-server
+# noblox.js-server
 
 [![ROBLOX API Discord](https://img.shields.io/badge/discord-roblox%20api%20chat-blue.svg?style=flat-square)](https://discord.gg/EDXNdAT)
 
-This is a primitive example server that uses my [roblox-js](https://github.com/sentanos/roblox-js) library, allowing users to execute site actions from in-game via HttpService.
+This is a primitive example server that uses my [noblox.js](https://github.com/suufi/noblox.js) library, allowing users to execute site actions from in-game via HttpService.
 
 ## Instructions
 
-Go to settings.json and set `username` and `password` to the username and password of the ROBLOX account you want to use. The `key` field is essentially a password for the site (to prevent strangers from accessing account functions). There is also an optional setting `maximumRank` which can be used to prevent attacks. User's above this rank are immune from having their rank changed and attempts to change a user's rank to something above this will be rejected. I recommend generating a random string or just smashing your keyboard since this will typically be accessed by another script that doesn't have to memorize said key.
+Go to settings.json and set `cookie` to the .ROBLOSECURITY cookie of the ROBLOX account you want to use. The `key` field is essentially a password for the site (to prevent strangers from accessing account functions). There is also an optional setting `maximumRank` which can be used to prevent attacks. User's above this rank are immune from having their rank changed and attempts to change a user's rank to something above this will be rejected. I recommend generating a random string or just smashing your keyboard since this will typically be accessed by another script that doesn't have to memorize said key.
 
 ## Free Host Tutorial
 1. Go to [heroku.com](https://heroku.com/) and sign up for an account.
@@ -197,33 +197,5 @@ key: string}
 
 Posts a message to the wall in group with group ID `group` and the message `message`.
 
-### POST /forumPost/new/{forumId: number}?[locked: boolean]
-```http
-/forumPost/new/32?locked=true
-{"subject": "Test", "body": "Test", "key": "hunter2"}
-```
-
-_NOTE: Lua function name is 'forumPostNew'_
-
-{subject: string,
-body: string,
-key: string}
-
-Creates a new forumPost with subject `subject` and body `body` in forum with id `forumId`. If `locked` is true the replies to the post will be disabled.
-
-[newPostId: number]
-
-### POST /forumPost/reply/{postId: number}?[locked: boolean]
-```http
-/forumPost/reply/201983178?locked=true
-{"body": "Test", "key": "hunter2"}
-```
-
-_NOTE: Lua function name is 'forumPostReply'_
-
-{body: string,
-key: string}
-
-Replies to forumPost with postId `postId`, the reply has the body `body`. If `locked` is true the replies to the post will be disabled.
-
-[newPostId: number]
+## Credits
+Credits to sentanos for the original roblox-js-server which this project is based off of.
