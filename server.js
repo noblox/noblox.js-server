@@ -443,8 +443,8 @@ app.use(function (err, req, res, next) {
   sendErr(res, {error: 'Internal server error'})
 })
 
-function login () {
-  return rbx.cookieLogin(COOKIE)
+async function login () {
+  return await rbx.setCookie(COOKIE)
 }
 login().then(function () {
   app.listen(port, function () {
