@@ -18,7 +18,7 @@
     "koa-better-error-handler": "^7.0.1",
     "koa-bodyparser": "^4.3.0",
     "koa-joi-router": "^7.0.0",
-    "noblox.js": "^4.8.5"
+    "noblox.js": "^4.12.0"
   },
   "devDependencies": {
     "eslint": "^7.23.0",
