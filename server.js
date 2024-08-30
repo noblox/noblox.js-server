@@ -261,7 +261,7 @@ if (COOKIE) {
   nbx.setCookie(COOKIE).then((currentUser) => {
     loggedIn = true
     app.listen(PORT)
-    console.log(`Listening on port ${PORT},`, `logged into ${currentUser.UserName}#${currentUser.UserID}`)
+    console.log(`Listening on port ${PORT},`, `logged into ${currentUser.name}#${currentUser.id}`)
   })
 } else {
   app.listen(PORT)

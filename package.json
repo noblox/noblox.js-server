@@ -1,12 +1,12 @@
 {
   "name": "noblox.js-server",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "A RESTful API for using noblox.js",
   "main": "server.js",
   "author": "suufi <suufi@mit.edu>",
   "license": "MIT",
   "scripts": {
-    "lint": "eslint .",
+    "lint": "standard .",
     "start": "node server.js"
   },
   "dependencies": {
@@ -18,17 +18,14 @@
     "koa-better-error-handler": "^7.0.1",
     "koa-bodyparser": "^4.3.0",
     "koa-joi-router": "^7.0.0",
-    "noblox.js": "^4.12.0"
+    "noblox.js": "^6.0.2"
   },
   "devDependencies": {
-    "eslint": "^7.23.0",
-    "eslint-config-standard": "^16.0.2",
-    "eslint-plugin-import": "^2.22.1",
-    "eslint-plugin-node": "^11.1.0",
-    "eslint-plugin-promise": "^4.3.1"
+    "standard": "^17.1.0"
   },
   "bugs": {
     "url": "https://github.com/noblox/noblox.js/issues"
   },
-  "homepage": "https://github.com/noblox/noblox.js-server"
+  "homepage": "https://github.com/noblox/noblox.js-server",
+  "packageManager": "yarn@1.22.19+sha1.4ba7fc5c6e704fce2066ecbfb0b0d8976fe62447"
 }
