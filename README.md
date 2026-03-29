@@ -21,6 +21,23 @@
   <a href="#license">License</a>
 </p>
 
+
+
+# ⚠️ Deprecation Notice
+As of 29 March 2026, noblox.js is no longer maintained. This library is deprecated and will not receive further updates, including bug fixes or support for new Roblox API changes.
+We have a few recommendations for alternatives:
+- If you only need OpenCloud endpoints, [relatiocc/opencloud](https://github.com/relatiocc/opencloud)
+- For a more fully featured library, written in typescript: [rozod](https://rozod.alrovi.com/)
+
+Existing versions will remain available on npm, but may break as the Roblox API evolves.
+  Noblox.js and noblox.js-server are now deprecated, effective immediately. You should not create new work using these libraries, and where possible you should move off them to other ones.
+
+Thank you for being a part of our community, and I hope that the library was useful to you.
+
+
+--- 
+
+
 ## About
 This repository hosts the code for a working [RESTful API](https://restfulapi.net/) that utilizes Koa.js to expose [noblox.js](https://github.com/suufi/noblox.js) functions on the internet. Essentially, with this project, you can host it on your own server and interact with the Roblox API through your own Roblox game. 
 
